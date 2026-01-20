@@ -1,0 +1,270 @@
+!pip install streamlit pyngrok -q
+
+with open("app.py", "w") as f:
+    f.write('''
+import streamlit as st
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.tree import DecisionTreeClassifier
+
+data = {
+    "Crop_Type": [
+        "rice", "wheat", "maize", "barley", "oats", "sorghum", "millet", "rye", "triticale", "quinoa",
+        "buckwheat", "spelt", "teff", "fonio", "amaranth", "job's tears", "pearl millet", "finger millet",
+        "kodo millet", "little millet", "chickpea", "pigeon pea", "lentil", "black gram", "green gram",
+        "kidney bean", "soybean", "cowpea", "broad bean", "horse gram", "moth bean", "navy bean",
+        "adzuki bean", "mung bean", "field pea", "groundnut", "sunflower", "mustard", "sesame",
+        "safflower", "castor", "linseed", "rapeseed", "soybean oilseed", "niger seed", "oil palm",
+        "coconut", "olive", "flax", "hemp", "banana", "mango", "apple", "grape", "orange", "papaya",
+        "pineapple", "guava", "pomegranate", "lychee", "pear", "plum", "peach", "apricot", "fig",
+        "kiwi", "dragon fruit", "melon", "watermelon", "jackfruit", "custard apple", "sapota",
+        "mulberry", "strawberry", "blueberry", "potato", "tomato", "onion", "garlic", "cabbage",
+        "cauliflower", "brinjal", "chili", "capsicum", "okra", "carrot", "radish", "beetroot",
+        "spinach", "pumpkin", "bitter gourd", "bottle gourd", "ridge gourd", "cucumber", "zucchini",
+        "turnip", "ginger", "turmeric", "yam", "sweet potato", "sugarcane", "tea", "coffee", "cocoa",
+        "rubber", "bamboo", "arecanut", "betel leaf", "cashew", "coconut palm", "date palm",
+        "palmyra palm", "pepper", "vanilla", "cardamom", "cotton", "jute", "kenaf", "hemp fiber",
+        "ramie", "sisal", "coir", "flax fiber", "bamboo shoots", "industrial hemp", "medicinal aloe",
+        "neem", "eucalyptus", "acacia", "poplar", "willow", "teak", "mahogany", "rosewood",
+        "sandalwood", "coriander", "cumin", "fennel", "fenugreek", "dill", "mint", "basil", "oregano",
+        "thyme", "sage", "rosemary", "lemongrass", "clove", "turmeric herb", "ginger herb"
+    ],
+
+    "Residue_Type": [
+        "straw", "husk", "cob", "stalk", "bran", "fodder", "straw", "husk", "fodder", "stalk", "bran",
+        "fodder", "stalk", "husk", "straw", "fodder", "bran", "fodder", "straw", "husk", "pod shell",
+        "stalk", "pod husk", "leaf", "stem", "fodder", "pod husk", "shell", "leaf", "stem", "pod husk",
+        "straw", "leaf", "fodder", "stalk", "shell", "husk", "oilcake", "stalk", "bran", "residue cake",
+        "pod husk", "fiber", "oil cake", "husk", "kernel shell", "husk", "pomace", "straw", "fiber",
+        "peel", "peel", "pruning", "pomace", "peel", "peel", "crown leaves", "peel", "rind", "skin",
+        "pruning", "pit", "pruning", "pit", "skin", "peel", "skin", "rind", "rind", "core", "seed coat",
+        "peel", "mulberry stalk", "leaf", "pomace", "peel", "stalk", "outer skin", "stalk", "leaf",
+        "leaf", "stalk", "stem", "stem", "stalk", "peel", "leaf", "peel", "leaf", "shell", "peel",
+        "shell", "peel", "peel", "peel", "peel", "rhizome", "rhizome", "tuber peel", "peel", "bagasse",
+        "pruning", "husk", "pod husk", "latex residue", "shoots", "leaf sheath", "leaf", "shell",
+        "coir fiber", "lint", "fiber stalk", "stem", "fiber", "bast fiber", "leaf fiber", "coir pith",
+        "straw", "shoots", "fiber stalk", "leaf gel residue", "seed cake", "wood chips", "bark",
+        "wood chips", "branch", "sawdust", "bark", "sawdust", "fragrance waste", "seed husk",
+        "seed husk", "seed husk", "leaf", "stem", "leaf", "stem", "leaf", "leaf", "stem", "leaf",
+        "leaf", "bud husk", "rhizome peel", "rhizome peel"
+    ],
+
+    "Suggested_Use": [
+        "biofuel", "compost", "animal feed", "paper", "biogas", "vermicompost", "biochar", "ethanol",
+        "mushroom cultivation", "fertilizer", "packaging", "biofuel", "compost", "paper", "biogas",
+        "biofuel", "animal feed", "compost", "biofuel", "compost", "compost", "biofuel", "animal feed",
+        "mulching", "green manure", "fodder", "compost", "biofuel", "animal feed", "vermicompost",
+        "biochar", "compost", "mulching", "biofuel", "paper", "biofuel", "compost", "animal feed",
+        "oil extraction residue compost", "fertilizer", "biochar", "mushroom cultivation", "paper",
+        "animal bedding", "biofuel", "ethanol", "compost", "soap making", "biofuel", "fiberboard",
+        "compost", "animal feed", "biochar", "wine residue compost", "vermicompost", "compost",
+        "biogas", "compost", "juice pulp feed", "mulching", "animal feed", "oil extraction", "compost",
+        "biochar", "paper", "biofuel", "nutraceuticals", "compost", "biofuel", "animal feed",
+        "vermicompost", "compost", "mulberry silk feed", "compost", "biofuel", "compost", "biofuel",
+        "animal feed", "compost", "vermicompost", "biofuel", "compost", "spice oil", "ethanol",
+        "mulching", "compost", "biofuel", "vermicompost", "animal feed", "pumpkin seed oil", "biofuel",
+        "animal feed", "compost", "biofuel", "compost", "biofuel", "medicine", "medicine", "biofuel",
+        "compost", "biofuel", "compost", "vermicompost", "animal feed", "rubber products", "biofuel",
+        "compost", "biochar", "cashew shell oil", "coir mats", "ethanol", "mulching", "pepper spray",
+        "vanilla essence", "medicine", "textile", "gunny bags", "fiberboard", "paper", "rope", "mats",
+        "cushions", "linen", "food", "biofuel", "cosmetics", "pesticides", "paper", "tannin",
+        "plywood", "charcoal", "biochar", "furniture", "handicrafts", "perfume", "spice powder",
+        "oil extraction", "flavoring", "fertilizer", "biofuel", "herbal tea", "medicine",
+        "culinary herb", "essential oil", "animal bedding", "cosmetics", "essential oil", "medicine",
+        "medicine", "biofuel"
+    ]
+}
+
+df = pd.DataFrame(data)
+le_crop = LabelEncoder()
+le_residue = LabelEncoder()
+le_use = LabelEncoder()
+df['Crop_Type'] = df['Crop_Type'].str.lower()
+df['Residue_Type'] = df['Residue_Type'].str.lower()
+df['Suggested_Use'] = df['Suggested_Use'].str.lower()
+df['Crop_Type_enc'] = le_crop.fit_transform(df['Crop_Type'])
+df['Residue_Type_enc'] = le_residue.fit_transform(df['Residue_Type'])
+df['Suggested_Use_enc'] = le_use.fit_transform(df['Suggested_Use'])
+X = df[['Crop_Type_enc', 'Residue_Type_enc']]
+y = df['Suggested_Use_enc']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+model = DecisionTreeClassifier()
+model.fit(X_train, y_train)
+def suggest_use_friendly(crop, residue):
+    try:
+        crop = crop.lower()
+        residue = residue.lower()
+        crop_enc = le_crop.transform([crop])[0]
+        residue_enc = le_residue.transform([residue])[0]
+        pred_enc = model.predict([[crop_enc, residue_enc]])[0]
+        suggestion = le_use.inverse_transform([pred_enc])[0]
+        return f"Based on the provided inputs, the residue of {crop} ({residue}) can be most effectively utilized for {suggestion}."
+
+    except:
+        return "Invalid input. Please enter valid crop and residue types from the dataset."
+st.title("🌾 AI-based Agricultural Waste Management System")
+st.subheader("Converting Agricultural Waste into Valuable Resources using AI")
+st.set_page_config(layout="wide")
+page_bg_img = f"""
+<style>
+.stApp {{
+  background-image: url("https://www.agrivi.com/wp-content/uploads/2015/12/Blog-Hummus.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}}
+.block-container h1,
+.block-container h2,
+.block-container h3,
+.block-container h4,
+.block-container h5,
+.block-container h6,
+.block-container p,
+.block-container span,
+.block-container div {{
+    color: white !important;
+}}
+header[data-testid="stHeader"]::before {{
+    content: "🏠 Home";
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--text-color); 
+}}
+div.stButton > button:first-child {{
+    background: rgba(128,128,128,0.4);  /* semi-transparent gray */
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    backdrop-filter: blur(6px);  /* blur effect */
+    border-radius: 10px;
+    padding: 0.6em 1.2em;
+    font-weight: bold;
+    transition: 0.3s;
+}}
+div.stButton > button:first-child:hover {{
+    background: rgba(128,128,128,0.7);
+    border: 1px solid rgba(255,255,255,0.6);
+}}
+</style>
+"""
+st.markdown(page_bg_img, unsafe_allow_html=True)
+st.header("Introduction")
+st.write("""
+Agriculture sustains billions of people worldwide, but it also generates massive amounts of waste that are often mismanaged. In India alone, more than 500 million tonnes of agricultural residues such as rice straw, wheat husk, sugarcane bagasse, corn stalks, and fruit peels are produced every year. Instead of being effectively utilized, a large share of this residue is either dumped or openly burned in fields. This practice contributes heavily to air pollution, greenhouse gas emissions, soil degradation, and loss of biodiversity, while also posing serious health risks such as respiratory illnesses in rural and urban populations. At the same time, these residues are not just waste — they are untapped resources that can be converted into biofuels, compost, animal feed, biogas, paper, organic fertilizers, and even raw materials for industrial applications. Managing them wisely is therefore both an environmental obligation and an economic opportunity.
+
+The major challenge lies in the awareness gap among farmers. Many are unaware of the most efficient or profitable ways to use their crop residues. With limited access to knowledge, training, or technology, farmers often fall back on traditional disposal methods like burning, which are harmful and wasteful. There is a pressing need for a simple, accessible, and intelligent system that can guide farmers in making informed decisions about agricultural waste utilization.
+
+The AI-based Agricultural Waste Management System is designed to address exactly this challenge. By using a machine learning model trained on a diverse dataset of 150 crop–residue–utilization combinations, the system can intelligently analyze the type of crop residue and provide an immediate recommendation for its best possible use. Whether it’s suggesting rice straw for biofuel, banana peels for compost, or sugarcane bagasse for paper, the system acts as a personal advisor for farmers and agricultural stakeholders. Unlike traditional awareness programs, this tool is interactive, user-friendly, and scalable, ensuring that even individuals with no technical background can benefit from it.
+
+The solution emphasizes ease of use and accessibility. With just a few inputs, the system produces clear, actionable results in everyday language, removing the guesswork for farmers. This not only helps reduce waste burning and environmental pollution but also empowers rural communities to turn residues into value-added products, contributing to income generation and circular economy practices. Furthermore, the system is scalable — it can be expanded to cover more crops, integrate government or research data, and even support regional languages to reach farmers across diverse geographies.
+
+
+🌱Crops and Their Categories
+
+Crops are the foundation of agriculture and human survival. They are broadly classified into several categories depending on their use, nutritional value, and commercial importance. Below is a detailed classification of major crop types along with examples.
+
+1. Cereals
+Cereals are the world’s primary source of carbohydrates and energy. They form the staple diet of billions of people.
+Examples include: rice, wheat, maize, barley, oats, sorghum, millet, rye, triticale, quinoa, buckwheat, spelt, teff, fonio, amaranth, job’s tears, pearl millet, finger millet, kodo millet, little millet.
+These grains are grown in large quantities and are essential for food security worldwide.
+
+2. Pulses
+Pulses are rich in protein, fiber, and essential nutrients, making them an important component of a balanced diet.
+Examples include: chickpea, pigeon pea, lentil, black gram, green gram, kidney bean, soybean, cowpea, broad bean, horse gram, moth bean, navy bean, adzuki bean, mung bean, field pea.
+They are widely used in vegetarian diets and also play a role in soil fertility through nitrogen fixation.
+
+3. Oilseeds
+Oilseeds are primarily grown for extracting edible oils and industrial products.
+Examples include: groundnut, sunflower, mustard, sesame, safflower, castor, linseed, rapeseed, soybean (oilseed type), niger seed, oil palm, coconut, olive, flax, hemp.
+These crops not only provide cooking oils but also raw materials for cosmetics, paints, and biofuels.
+
+4. Fruits
+Fruits are a rich source of vitamins, minerals, and antioxidants. They are consumed fresh, processed, or preserved.
+Examples include: banana, mango, apple, grape, orange, papaya, pineapple, guava, pomegranate, lychee, pear, plum, peach, apricot, fig, kiwi, dragon fruit, melon, watermelon, jackfruit, custard apple, sapota, mulberry, strawberry, blueberry.
+Each fruit has its own nutritional and medicinal benefits, and they contribute significantly to human health.
+
+5. Vegetables
+Vegetables are essential for a balanced diet, providing vitamins, minerals, and dietary fiber.
+Examples include: potato, tomato, onion, garlic, cabbage, cauliflower, brinjal (eggplant), chili, capsicum, okra, carrot, radish, beetroot, spinach, pumpkin, bitter gourd, bottle gourd, ridge gourd, cucumber, zucchini, turnip, ginger, turmeric, yam, sweet potato.
+Vegetables are cultivated across all regions and form a daily part of human meals.
+
+6. Plantation Crops
+Plantation crops are mainly cultivated on large estates for commercial value.
+Examples include: sugarcane, tea, coffee, cocoa, rubber, bamboo, arecanut, betel leaf, cashew, coconut palm, date palm, palmyra palm, pepper, vanilla, cardamom.
+These crops are important for trade, industry, and export.
+
+7. Commercial and Industrial Crops
+These crops are grown for raw materials in industries such as textiles, timber, paper, and pharmaceuticals.
+Examples include: cotton, jute, kenaf, hemp fiber, ramie, sisal, coir, flax fiber, bamboo shoots, industrial hemp, medicinal aloe, neem, eucalyptus, acacia, poplar, willow, teak, mahogany, rosewood, sandalwood.
+They have wide applications ranging from clothing to furniture, medicine, and construction.
+
+8. Spices and Herbs
+Spices and herbs are grown for flavoring, fragrance, and medicinal properties.
+Examples include: coriander, cumin, fennel, fenugreek, dill, mint, basil, oregano, thyme, sage, rosemary, lemongrass, clove, turmeric herb, ginger herb.
+They are widely used in cooking, herbal medicine, and aromatherapy.
+
+
+🌾 Crop Residues and Their Types
+
+Crop residues are the non-economic parts of crops that remain in the field after the primary product (grain, fruit, fiber, etc.) is harvested. They are often considered agricultural waste but in reality, they hold immense value for soil health, livestock feeding, biofuel, and other industrial purposes. Residues vary depending on the type of crop and are classified into several categories.
+
+1. Cereal Crop Residues
+Cereal crops leave behind large quantities of straw, stalks, and husks, which are mostly fibrous.
+Examples include: rice straw, wheat straw, maize stalks, barley straw, oat husk, sorghum stalks, millet straw, rye straw, triticale husk, quinoa residue, buckwheat husk, spelt husk, teff straw, fonio husk, amaranth stalks, pearl millet husk, finger millet straw, kodo millet residue, little millet residue.
+
+2. Pulse Crop Residues
+Pulse crops provide pod shells, haulms, and stalks after harvesting.
+Examples include: chickpea husk, pigeon pea stalks, lentil husk, black gram residue, green gram residue, kidney bean pods, soybean haulms, cowpea residue, broad bean husk, horse gram stalks, moth bean residue, navy bean husk, adzuki bean pods, mung bean haulms, field pea shells.
+
+3. Oilseed Residues
+After oil extraction, a large amount of seedcake and husk remains.
+Examples include: groundnut shells, sunflower stalks, mustard husk, sesame stalks, safflower husk, castor residue, linseed cake, rapeseed residue, soybean oilcake, niger seed husk, oil palm fronds, coconut husk, olive residue, flax residue, hemp stalks.
+
+4. Fruit Crop Residues
+Fruits leave behind peels, seeds, and pruning waste.
+Examples include: banana peel, mango seed kernel, apple pomace, grape pomace, orange peel, papaya peel, pineapple crown, guava seeds, pomegranate peel, lychee shells, pear pomace, plum pits, peach kernel, apricot stones, fig pruning waste, kiwi peel, dragon fruit peel, melon rind, watermelon rind, jackfruit peel, custard apple seeds, sapota peel, mulberry stems, strawberry leaves, blueberry pomace.
+
+5. Vegetable Crop Residues
+Vegetables produce peels, leaves, and stems after use.
+Examples include: potato peels, tomato stems, onion skins, garlic peel, cabbage leaves, cauliflower stems, brinjal stalks, chili stems, capsicum seeds, okra stems, carrot peels, radish leaves, beetroot peel, spinach stems, pumpkin rind, bitter gourd peel, bottle gourd peel, ridge gourd peel, cucumber peel, zucchini peel, turnip leaves, ginger peel, turmeric rhizome waste, yam peel, sweet potato vines.
+
+6. Plantation Crop Residues
+These crops leave woody and fibrous residues.
+Examples include: sugarcane bagasse, tea prunings, coffee husk, cocoa pod husk, rubber leaves, bamboo leaves, arecanut husk, betel leaf stalks, cashew nut shells, coconut shell & coir, date palm leaves, palmyra palm leaves, pepper stalks, vanilla stems, cardamom husk.
+
+7. Commercial/Industrial Crop Residues
+Fibrous plants and timber crops leave stalks, fibers, and wood dust.
+Examples include: cotton stalks, jute sticks, kenaf stalks, hemp fiber waste, ramie stalks, sisal leaves, coir pith, flax fiber waste, bamboo shoots residue, industrial hemp stalks, aloe vera waste, neem leaves, eucalyptus leaves, acacia bark, poplar wood residue, willow bark, teak sawdust, mahogany sawdust, rosewood dust, sandalwood chips.
+
+8. Spices and Herb Residues
+These crops leave behind stems, leaves, and spent material after extraction.
+Examples include: coriander stems, cumin husk, fennel stalks, fenugreek residue, dill stalks, mint residue, basil stems, oregano stems, thyme stalks, sage leaves, rosemary stems, lemongrass stalks, clove stems, turmeric rhizome waste, ginger rhizome waste.
+
+🌱 Why This Matters?
+Both crops and their residues are not just agricultural products but valuable resources that can improve farmer income, promote sustainable farming, and reduce environmental damage. By understanding different crop types and their residues, we open the door to innovative uses such as bioenergy, organic fertilizers, animal feed, and industrial raw materials.
+
+✨ Instead of burning or wasting residues, farmers and industries can transform them into opportunities — contributing to cleaner air, healthier soil, and a greener future.
+
+
+""")
+
+crop_input = st.text_input("Enter Crop Type:")
+residue_input = st.text_input("Enter Residue Type:")
+
+if st.button("Suggest Use"):
+    if crop_input and residue_input:
+        st.success(suggest_use_friendly(crop_input, residue_input))
+    else:
+        st.warning("Please enter both crop and residue.")
+''')
+from pyngrok import ngrok
+ngrok.kill()
+ngrok.set_auth_token("31YVbfzhxR7eiEzxQTUmfXd3ZIg_7DfV2GAmYsgoEfVYpkoxG")
+get_ipython().system_raw("streamlit run app.py --server.port 8501 &")
+public_url = ngrok.connect(8501)
+print("🚀 Your Streamlit App is live at:", public_url)
